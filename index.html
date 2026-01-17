@@ -120,29 +120,36 @@
 
         // ฟังก์ชันแปลงและย่อรูปภาพ
         function previewFile() {
-            const file = document.getElementById('fileInput').files[0];
-            const reader = new FileReader();
-            reader.onloadend = function() {
-                const img = new Image();
-                img.src = reader.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const maxWidth = 800; // ย่อรูปไม่ให้เกิน 800px
-                    const scaleSize = maxWidth / img.width;
-                    canvas.width = maxWidth;
-                    canvas.height = img.height * scaleSize;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    base64Image = canvas.toDataURL('image/jpeg', 0.7); // คุณภาพ 70%
-                    
-                    // โชว์รูป
-                    document.getElementById('previewImage').src = base64Image;
-                    document.getElementById('previewContainer').classList.remove('hidden');
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                }
-            }
-            if (file) reader.readAsDataURL(file);
-        }
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            // ย่อรูปเหลือความกว้าง 800px เพื่อความเร็ว
+            const maxWidth = 800;
+            const scaleSize = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scaleSize;
+            
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // สำคัญมาก: เก็บค่าลงในตัวแปร base64Image
+            base64Image = canvas.toDataURL('image/jpeg', 0.8); 
+            
+            // แสดงรูปตัวอย่าง
+            document.getElementById('previewImage').src = base64Image;
+            document.getElementById('previewContainer').classList.remove('hidden');
+            document.getElementById('uploadPlaceholder').classList.add('hidden');
+            console.log("✅ รูปถูกแปลงเป็น Base64 เรียบร้อย");
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
 
         // ฟังก์ชันส่งข้อมูล
         function submitForm() {
@@ -203,6 +210,7 @@
 </body>
 
 </html>
+
 
 
 
