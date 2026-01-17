@@ -134,7 +134,7 @@
             }
 
             Swal.fire({ title: 'กำลังส่งข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-
+            alert("ขนาดข้อมูลรูปภาพ: " + base64Image.length + " ตัวอักษร");
             const payload = {
                 action: "new_report",
                 user: liff.getContext()?.userId || "Unknown",
@@ -162,3 +162,4 @@
     </script>
 </body>
 </html>
+
