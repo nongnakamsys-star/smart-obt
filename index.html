@@ -123,28 +123,33 @@
     const file = document.getElementById('fileInput').files[0];
     if (!file) return;
 
+    // ล็อคปุ่มส่งไว้ก่อน กันกดส่งตอนรูปยังไม่มา
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerText = "⏳ กำลังประมวลผลรูป...";
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            // ย่อรูปเหลือความกว้าง 800px เพื่อความเร็ว
-            const maxWidth = 800;
+            const maxWidth = 800; 
             const scaleSize = maxWidth / img.width;
             canvas.width = maxWidth;
             canvas.height = img.height * scaleSize;
-            
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // สำคัญมาก: เก็บค่าลงในตัวแปร base64Image
+            // บันทึกรูปลงตัวแปร
             base64Image = canvas.toDataURL('image/jpeg', 0.8); 
             
-            // แสดงรูปตัวอย่าง
+            // โชว์รูปและเปิดปุ่มส่ง
             document.getElementById('previewImage').src = base64Image;
             document.getElementById('previewContainer').classList.remove('hidden');
             document.getElementById('uploadPlaceholder').classList.add('hidden');
-            console.log("✅ รูปถูกแปลงเป็น Base64 เรียบร้อย");
+            
+            // ปลดล็อคปุ่มส่ง
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerText = "ส่งเรื่องแจ้งเหตุ 🚀";
         };
         img.src = e.target.result;
     };
@@ -210,6 +215,7 @@
 </body>
 
 </html>
+
 
 
 
