@@ -31,13 +31,11 @@
         <div class="space-y-3">
             <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="w-full p-3 border rounded-lg">
             <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg">
-            <select id="type" class="w-full p-3 border rounded-lg">
-                <option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>
-                <option value="ไฟฟ้าสาธารณะดับ">💡 ไฟฟ้าสาธารณะดับ</option>
-                <option value="ท่อประปาแตก/รั่ว">💧 ท่อประปาแตก/รั่ว</option>
-                <option value="ถนนชำรุด">🛣️ ถนนชำรุด</option>
-                <option value="อื่นๆ">📣 อื่นๆ</option>
+            
+            <select id="type" class="w-full p-3 border rounded-lg bg-white">
+                <option value="" disabled selected>⏳ กำลังโหลดประเภทเหตุ...</option>
             </select>
+            
             <textarea id="detail" rows="3" placeholder="รายละเอียด..." class="w-full p-3 border rounded-lg"></textarea>
         </div>
 
@@ -45,8 +43,8 @@
     </div>
 
     <script>
-        // --- ⚙️ ตั้งค่า (สำคัญมาก) ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzSPMvtW0AY0wm6gh1kEaI97NovooYOULQYGildArPqNte5fhmEW-DUtwvgntEjzFbvLg/exec"; 
+        // --- ⚙️ ตั้งค่า (ใช้ค่าเดิมของคุณ) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqeAYfMnR5L71zChnTH9fuhYL_GQZM8AfXCuSe0opauOgeZ9-1bUBlnT6OE21HD5DH8g/exec"; 
         const LIFF_ID = "2008912061-0y709pTb";
         const IMGBB_API_KEY = "2a80595118a7dc36b3ebda7a006fef3b";
         // -------------------------
@@ -60,9 +58,32 @@
             else {
                 const profile = await liff.getProfile();
                 document.getElementById('name').value = profile.displayName;
+                // เมื่อ LIFF พร้อม ให้โหลดหมวดหมู่ทันที
+                loadCategories();
             }
         }
         initLIFF();
+
+        // 🚩 ฟังก์ชันดึงประเภทเหตุจาก Google Sheet (หน้า Setting)
+        async function loadCategories() {
+            try {
+                const response = await fetch(WEB_APP_URL + "?action=getCategories");
+                const categories = await response.json();
+                const select = document.getElementById('type');
+                
+                select.innerHTML = '<option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>';
+                
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Load failed:", error);
+                document.getElementById('type').innerHTML = '<option value="" disabled selected>❌ โหลดไม่สำเร็จ</option>';
+            }
+        }
 
         function processImage() {
             const file = document.getElementById('fileInput').files[0];
@@ -85,7 +106,11 @@
         }
 
         async function submitForm() {
-            if (!base64Image || !lat) { Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูปและระบุพิกัด', 'warning'); return; }
+            const type = document.getElementById('type').value;
+            if (!base64Image || !lat || !type) { 
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูป ระบุพิกัด และเลือกประเภทเหตุครับ', 'warning'); 
+                return; 
+            }
             
             Swal.fire({ title: 'กำลังอัปโหลดรูป...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -104,7 +129,7 @@
                     user: liff.getContext()?.userId,
                     name: document.getElementById('name').value,
                     phone: document.getElementById('phone').value,
-                    type: document.getElementById('type').value,
+                    type: type,
                     detail: document.getElementById('detail').value,
                     lat: lat, lng: lng, image: finalImg
                 };
