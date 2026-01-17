@@ -3,53 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แจ้งเหตุร้องทุกข์ อบต.</title>
+    <title>แจ้งเหตุ อบต. V3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
         body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
-        .loading { display: none; }
     </style>
 </head>
 <body class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
 
     <div class="bg-blue-600 p-5 text-white text-center rounded-b-3xl shadow-md">
         <h1 class="text-2xl font-bold">📢 แจ้งเหตุร้องทุกข์</h1>
-        <p class="text-sm opacity-80">องค์การบริหารส่วนตำบลหนองนาคำ(Smart OBT)</p>
+        <p class="text-sm opacity-80">องค์การบริหารส่วนตำบล (Smart OBT)</p>
     </div>
 
     <div class="p-6 space-y-4">
-        
         <div class="text-center">
-            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col justify-center items-center cursor-pointer bg-gray-50 hover:bg-gray-100 relative overflow-hidden">
+            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col justify-center items-center cursor-pointer bg-gray-50 relative overflow-hidden">
                 <div id="previewContainer" class="absolute inset-0 flex items-center justify-center hidden">
                     <img id="previewImage" class="object-cover w-full h-full">
                 </div>
-                <div id="uploadPlaceholder" class="text-gray-400">
-                    <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <p class="mt-1 text-sm">แตะเพื่อถ่ายรูปจุดเกิดเหตุ</p>
+                <div id="uploadPlaceholder" class="text-gray-400 text-center">
+                    <p class="text-4xl">📸</p>
+                    <p class="mt-1 text-sm">แตะเพื่อถ่ายรูป</p>
                 </div>
-                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="previewFile()">
+                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
             </label>
         </div>
 
-        <div>
-            <button type="button" onclick="getLocation()" class="w-full bg-orange-500 text-white py-2 rounded-lg shadow hover:bg-orange-600 flex justify-center items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                ระบุตำแหน่งปัจจุบัน
-            </button>
-            <p id="locationStatus" class="text-xs text-center text-gray-500 mt-1">ยังไม่ได้ระบุพิกัด</p>
-        </div>
+        <button type="button" onclick="getLocation()" class="w-full bg-orange-500 text-white py-2 rounded-lg shadow font-bold">📍 ระบุตำแหน่งพิกัด</button>
+        <p id="locationStatus" class="text-xs text-center text-gray-500">ยังไม่ได้ระบุพิกัด</p>
 
         <div class="grid grid-cols-2 gap-3">
-            <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="p-3 border rounded-lg bg-gray-50 w-full">
-            <input type="tel" id="phone" placeholder="เบอร์โทรศัพท์" class="p-3 border rounded-lg bg-gray-50 w-full">
+            <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="p-3 border rounded-lg bg-gray-50">
+            <input type="tel" id="phone" placeholder="เบอร์โทร" class="p-3 border rounded-lg bg-gray-50">
         </div>
 
         <select id="type" class="w-full p-3 border rounded-lg bg-white">
-            <option value="" disabled selected>🔻 เลือกประเภทเหตุ (คลิก)</option>
+            <option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>
             <option value="ไฟฟ้าสาธารณะดับ">💡 ไฟฟ้าสาธารณะดับ</option>
             <option value="ท่อประปาแตก/รั่ว">💧 ท่อประปาแตก/รั่ว</option>
             <option value="ถนนชำรุด/เป็นหลุม">🛣️ ถนนชำรุด/เป็นหลุม</option>
@@ -57,168 +50,115 @@
             <option value="อื่นๆ">📣 อื่นๆ</option>
         </select>
 
-        <textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม (เช่น ตรงข้ามบ้านเลขที่...)" class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
+        <textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
 
-        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
+        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 disabled:bg-gray-400">
             ส่งเรื่องแจ้งเหตุ 🚀
         </button>
-
     </div>
 
     <script>
-        // =========================================================
-        // ⚙️ ตั้งค่าระบบ (แก้ตรงนี้!)
-        // =========================================================
-        
-        // 1. เอา Web App URL ที่ได้จาก Apps Script มาใส่ตรงนี้
+        // --- ส่วนตั้งค่า ---
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypvdpyAIRB68kvhmtVL9p7iRs7gtC1jjB_4lDSpjaRbH_FHw4avAoOKr7GXcFWnR_SZw/exec"; 
-
-        // 2. เดี๋ยวเราต้องเอา LIFF ID มาใส่ตรงนี้ (ตอนนี้เว้นไว้ก่อน หรือใส่ 165... ไว้มั่วๆ ก่อนได้)
         const LIFF_ID = "2008912061-0y709pTb";
+        // ----------------
 
-        // =========================================================
-
-        let userProfile = {};
-        let lat = "", lng = "";
         let base64Image = "";
+        let lat = "", lng = "";
 
-        // เริ่มทำงานเมื่อเปิดเว็บ
-        async function main() {
-            try {
-                await liff.init({ liffId: LIFF_ID });
-                if (liff.isLoggedIn()) {
-                    userProfile = await liff.getProfile();
-                    document.getElementById('name').value = userProfile.displayName; // ดึงชื่อไลน์มาใส่ให้อัตโนมัติ
-                } else {
-                    liff.login();
-                }
-            } catch (e) {
-                console.log("LIFF Error:", e);
-                // ถ้าเทสต์ในคอม ให้ใส่ User ปลอมๆ ไว้ทดสอบ
-                userProfile = { userId: "U_TEST_BROWSER", displayName: "Test User" };
+        async function initLIFF() {
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { liff.login(); }
+            else {
+                const profile = await liff.getProfile();
+                document.getElementById('name').value = profile.displayName;
             }
         }
-        main();
+        initLIFF();
 
-        // ฟังก์ชันดึง GPS
+        function processImage() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "⏳ กำลังโหลดรูป...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 800;
+                    const scaleSize = maxWidth / img.width;
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // บันทึกรูปใส่ตัวแปร
+                    base64Image = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    document.getElementById('previewImage').src = base64Image;
+                    document.getElementById('previewContainer').classList.remove('hidden');
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    
+                    btn.disabled = false;
+                    btn.innerText = "ส่งเรื่องแจ้งเหตุ 🚀";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         function getLocation() {
-            document.getElementById('locationStatus').innerText = "🔄 กำลังค้นหา...";
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    lat = position.coords.latitude;
-                    lng = position.coords.longitude;
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    lat = pos.coords.latitude; lng = pos.coords.longitude;
                     document.getElementById('locationStatus').innerText = "✅ ได้พิกัดแล้ว: " + lat.toFixed(4) + ", " + lng.toFixed(4);
-                    document.getElementById('locationStatus').classList.add("text-green-600");
-                }, () => {
-                    alert("กรุณากด 'อนุญาต' ให้เข้าถึงตำแหน่ง");
-                    document.getElementById('locationStatus').innerText = "❌ ระบุพิกัดล้มเหลว";
                 });
-            } else {
-                alert("เครื่องของคุณไม่รองรับ GPS");
             }
         }
 
-        // ฟังก์ชันแปลงและย่อรูปภาพ
-        function previewFile() {
-    const file = document.getElementById('fileInput').files[0];
-    if (!file) return;
-
-    // ล็อคปุ่มส่งไว้ก่อน กันกดส่งตอนรูปยังไม่มา
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitBtn').innerText = "⏳ กำลังประมวลผลรูป...";
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const maxWidth = 800; 
-            const scaleSize = maxWidth / img.width;
-            canvas.width = maxWidth;
-            canvas.height = img.height * scaleSize;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            // บันทึกรูปลงตัวแปร
-            base64Image = canvas.toDataURL('image/jpeg', 0.8); 
-            
-            // โชว์รูปและเปิดปุ่มส่ง
-            document.getElementById('previewImage').src = base64Image;
-            document.getElementById('previewContainer').classList.remove('hidden');
-            document.getElementById('uploadPlaceholder').classList.add('hidden');
-            
-            // ปลดล็อคปุ่มส่ง
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').innerText = "ส่งเรื่องแจ้งเหตุ 🚀";
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-
-        // ฟังก์ชันส่งข้อมูล
         function submitForm() {
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
             const type = document.getElementById('type').value;
             const detail = document.getElementById('detail').value;
 
-            // ตรวจสอบข้อมูล
-            if (!type || !detail) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกประเภทและกรอกรายละเอียด', 'warning');
+            if (!base64Image) {
+                Swal.fire('ขออภัย', 'กรุณาถ่ายรูปภาพประกอบด้วยครับ', 'warning');
                 return;
             }
             if (!lat) {
-                Swal.fire('แจ้งเตือน', 'กรุณากดปุ่มระบุตำแหน่งก่อนครับ', 'warning');
+                Swal.fire('ขออภัย', 'กรุณากดระบุตำแหน่งก่อนครับ', 'warning');
                 return;
             }
 
-            // ปุ่มโหลด
-            const btn = document.getElementById('submitBtn');
-            btn.innerHTML = "⏳ กำลังส่งข้อมูล...";
-            btn.disabled = true;
+            Swal.fire({ title: 'กำลังส่งข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-            // แพ็คของเตรียมส่ง
             const payload = {
                 action: "new_report",
-                user: userProfile.userId || "U_UNKNOWN",
-                name: name,
-                phone: phone,
+                user: liff.getContext()?.userId || "Unknown",
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
                 type: type,
                 detail: detail,
                 lat: lat,
                 lng: lng,
-                image: base64Image,
-                replyToken: "" // ใช้กับ LIFF จริงไม่ต้องใส่ก็ได้
+                image: base64Image
             };
 
-            // ยิงขึ้นฟ้าไปหา Apps Script
             fetch(WEB_APP_URL, {
                 method: 'POST',
+                mode: 'no-cors', // เพิ่มเพื่อป้องกันปัญหา CORS บางกรณี
                 body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                Swal.fire('สำเร็จ!', 'รับแจ้งเหตุเรียบร้อย รหัสงาน: ' + data.jobId, 'success')
-                .then(() => {
-                    liff.closeWindow(); // ปิดหน้าต่างไลน์อัตโนมัติ
+            }).then(() => {
+                Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => {
+                    liff.closeWindow();
                 });
-            })
-            .catch(error => {
-                Swal.fire('เกิดข้อผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่', 'error');
-                console.error(error);
-                btn.innerHTML = "ส่งเรื่องแจ้งเหตุ 🚀";
-                btn.disabled = false;
+            }).catch(err => {
+                Swal.fire('ผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่', 'error');
             });
         }
     </script>
 </body>
-
 </html>
-
-
-
-
-
-
-
