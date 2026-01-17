@@ -3,65 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart อบต. V3.0 (ImgBB Mode)</title>
+    <title>Smart อบต. V3.0 (ImgBB)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
-        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
-    </style>
 </head>
-<body class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
-
-    <div class="bg-blue-600 p-5 text-white text-center rounded-b-3xl shadow-md">
+<body class="max-w-md mx-auto bg-gray-100 min-h-screen">
+    <div class="bg-blue-600 p-6 text-white text-center rounded-b-3xl shadow-lg">
         <h1 class="text-2xl font-bold">📢 แจ้งเหตุร้องทุกข์</h1>
-        <p class="text-sm opacity-80">ระบบรับแจ้งเหตุผ่าน ImgBB</p>
+        <p class="text-sm opacity-80">องค์การบริหารส่วนตำบล</p>
     </div>
 
     <div class="p-6 space-y-4">
         <div class="text-center">
-            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col justify-center items-center cursor-pointer bg-gray-50 relative overflow-hidden">
-                <div id="previewContainer" class="absolute inset-0 flex items-center justify-center hidden">
-                    <img id="previewImage" class="object-cover w-full h-full">
-                </div>
-                <div id="uploadPlaceholder" class="text-gray-400 text-center">
-                    <p class="text-4xl">📸</p>
-                    <p class="mt-1 text-sm">ถ่ายรูปภาพประกอบ</p>
+            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col justify-center items-center cursor-pointer bg-white relative overflow-hidden">
+                <div id="previewContainer" class="absolute inset-0 hidden"><img id="previewImage" class="object-cover w-full h-full"></div>
+                <div id="uploadPlaceholder" class="text-gray-400">
+                    <p class="text-4xl">📸</p><p class="text-sm">ถ่ายรูปแจ้งเหตุ</p>
                 </div>
                 <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
             </label>
         </div>
 
-        <button type="button" onclick="getLocation()" class="w-full bg-orange-500 text-white py-2 rounded-lg shadow font-bold">📍 ระบุตำแหน่งพิกัด</button>
+        <button onclick="getLocation()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow">📍 กดระบุตำแหน่งพิกัด</button>
         <p id="locationStatus" class="text-xs text-center text-gray-500 italic">ยังไม่ได้ระบุพิกัด</p>
 
-        <div class="grid grid-cols-2 gap-3">
-            <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="p-3 border rounded-lg bg-gray-50">
-            <input type="tel" id="phone" placeholder="เบอร์โทร" class="p-3 border rounded-lg bg-gray-50">
+        <div class="space-y-3">
+            <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="w-full p-3 border rounded-lg">
+            <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg">
+            <select id="type" class="w-full p-3 border rounded-lg">
+                <option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>
+                <option value="ไฟฟ้าสาธารณะดับ">💡 ไฟฟ้าสาธารณะดับ</option>
+                <option value="ท่อประปาแตก/รั่ว">💧 ท่อประปาแตก/รั่ว</option>
+                <option value="ถนนชำรุด">🛣️ ถนนชำรุด</option>
+                <option value="อื่นๆ">📣 อื่นๆ</option>
+            </select>
+            <textarea id="detail" rows="3" placeholder="รายละเอียด..." class="w-full p-3 border rounded-lg"></textarea>
         </div>
 
-        <select id="type" class="w-full p-3 border rounded-lg bg-white">
-            <option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>
-            <option value="ไฟฟ้าสาธารณะดับ">💡 ไฟฟ้าสาธารณะดับ</option>
-            <option value="ท่อประปาแตก/รั่ว">💧 ท่อประปาแตก/รั่ว</option>
-            <option value="ถนนชำรุด/เป็นหลุม">🛣️ ถนนชำรุด/เป็นหลุม</option>
-            <option value="อื่นๆ">📣 อื่นๆ</option>
-        </select>
-
-        <textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
-
-        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700">
-            ส่งเรื่องแจ้งเหตุ 🚀
-        </button>
+        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">🚀 ส่งเรื่องแจ้งเหตุ</button>
     </div>
 
     <script>
-        // --- ⚙️ ส่วนตั้งค่า (แก้ไข 3 จุดนี้) ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwep5hm9DqGZdQtV7TmmGHbrJ_7A7xcn8h0RQjDvqkInFIqHryqk3mBhYWC7LGfM1IbmQ/exec"; 
+        // --- ⚙️ ตั้งค่า (สำคัญมาก) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqSZApn9jd3jfRRDF4QKEdkg2PSs8XdvLBtE7xN_D87QzrvO9DUqkEemXF97iwiH1naQ/exec"; 
         const LIFF_ID = "2008912061-0y709pTb";
         const IMGBB_API_KEY = "2a80595118a7dc36b3ebda7a006fef3b";
-        // ----------------------------------
+        // -------------------------
 
         let base64Image = "";
         let lat = "", lng = "";
@@ -80,8 +68,8 @@
             const file = document.getElementById('fileInput').files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
-                base64Image = e.target.result.split(',')[1]; // เอาแค่ข้อมูล base64 (ไม่เอา header)
+            reader.onload = (e) => {
+                base64Image = e.target.result.split(',')[1];
                 document.getElementById('previewImage').src = e.target.result;
                 document.getElementById('previewContainer').classList.remove('hidden');
                 document.getElementById('uploadPlaceholder').classList.add('hidden');
@@ -90,62 +78,41 @@
         }
 
         function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    lat = pos.coords.latitude; lng = pos.coords.longitude;
-                    document.getElementById('locationStatus').innerText = "✅ ได้พิกัดแล้ว: " + lat.toFixed(4) + ", " + lng.toFixed(4);
-                });
-            }
+            navigator.geolocation.getCurrentPosition((pos) => {
+                lat = pos.coords.latitude; lng = pos.coords.longitude;
+                document.getElementById('locationStatus').innerText = "✅ บันทึกพิกัดเรียบร้อย";
+            });
         }
 
         async function submitForm() {
-            const type = document.getElementById('type').value;
-            if (!base64Image || !lat || !type) {
-                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูป ระบุพิกัด และเลือกประเภทเหตุครับ', 'warning');
-                return;
-            }
-
-            Swal.fire({ title: 'กำลังอัปโหลดรูปภาพ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+            if (!base64Image || !lat) { Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูปและระบุพิกัด', 'warning'); return; }
+            
+            Swal.fire({ title: 'กำลังอัปโหลดรูป...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                // 1. ส่งรูปไป ImgBB
-                const formData = new FormData();
+                // 1. อัปโหลดไป ImgBB
+                let formData = new FormData();
                 formData.append("image", base64Image);
-                const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                    method: "POST",
-                    body: formData
-                });
-                const imgData = await imgRes.json();
-                const finalImageUrl = imgData.data.url;
+                let imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                let imgJson = await imgRes.json();
+                let finalImg = imgJson.data.url;
 
-                // 2. ส่งข้อมูลทั้งหมดไป Google Script
-                Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-
-                const payload = {
+                // 2. ส่งข้อมูลไป Google Script
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                let payload = {
                     action: "new_report",
-                    user: liff.getContext()?.userId || "Unknown",
+                    user: liff.getContext()?.userId,
                     name: document.getElementById('name').value,
                     phone: document.getElementById('phone').value,
-                    type: type,
+                    type: document.getElementById('type').value,
                     detail: document.getElementById('detail').value,
-                    lat: lat,
-                    lng: lng,
-                    image: finalImageUrl // ลิงก์จาก ImgBB
+                    lat: lat, lng: lng, image: finalImg
                 };
 
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload)
-                });
-
-                Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => liff.closeWindow());
-
-            } catch (error) {
-                Swal.fire('ผิดพลาด', 'เกิดปัญหาในการส่งข้อมูล: ' + error, 'error');
-            }
+                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                Swal.fire('สำเร็จ!', 'รับเรื่องเรียบร้อยแล้ว', 'success').then(() => liff.closeWindow());
+            } catch (e) { Swal.fire('ล้มเหลว', 'กรุณาลองใหม่', 'error'); }
         }
     </script>
 </body>
 </html>
-
