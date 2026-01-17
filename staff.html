@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบช่าง - Smart อบต.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; }
+        .pending-border { border-left: 6px solid #ef4444; }
+    </style>
+</head>
+<body class="max-w-md mx-auto pb-10">
+
+    <div class="bg-gray-800 p-6 text-white text-center shadow-lg">
+        <h1 class="text-xl font-bold">🛠️ รายการงานซ่อม</h1>
+        <p class="text-xs opacity-60">สำหรับเจ้าหน้าที่กองช่าง อบต.</p>
+    </div>
+
+    <div id="jobList" class="p-4 space-y-4">
+        <p class="text-center text-gray-500 mt-10">⏳ กำลังโหลดข้อมูลงาน...</p>
+    </div>
+
+    <script>
+        // --- ⚙️ ตั้งค่า (แก้ไขให้เหมือนหน้า index.html) ---
+        const WEB_APP_URL = "วาง_URL_จาก_Apps_Script_ที่นี่"; 
+        const IMGBB_API_KEY = "วาง_API_KEY_ของ_ImgBB_ที่นี่";
+        // ---------------------------------------------
+
+        async function loadJobs() {
+            try {
+                const response = await fetch(WEB_APP_URL);
+                const data = await response.json();
+                const jobList = document.getElementById('jobList');
+                jobList.innerHTML = "";
+
+                // แสดงเฉพาะงานที่สถานะ "รอดำเนินการ"
+                const pendingJobs = data.filter(job => job.status === "รอดำเนินการ");
+
+                if (pendingJobs.length === 0) {
+                    jobList.innerHTML = '<div class="text-center p-10 text-gray-400">✅ ไม่มีงานค้างในขณะนี้</div>';
+                    return;
+                }
+
+                pendingJobs.forEach(job => {
+                    const card = `
+                        <div class="bg-white rounded-xl shadow-md p-4 pending-border">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold">${job.type}</span>
+                                <span class="text-gray-400 text-[10px]">${new Date(job.timestamp).toLocaleString('th-TH')}</span>
+                            </div>
+                            <img src="${job.image}" class="w-full h-40 object-cover rounded-lg mb-3">
+                            <h3 class="font-bold text-gray-800">${job.detail}</h3>
+                            <p class="text-xs text-gray-500 mt-1">ผู้แจ้ง: ${job.name}</p>
+                            
+                            <div class="mt-4 flex gap-2">
+                                <a href="https://www.google.com/maps?q=${job.lat},${job.lng}" target="_blank" class="flex-1 bg-blue-100 text-blue-700 text-center py-2 rounded-lg text-sm font-bold">📍 แผนที่</a>
+                                <button onclick="closeJob('${job.jobId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold shadow-md">✅ ปิดงาน</button>
+                            </div>
+                        </div>
+                    `;
+                    jobList.innerHTML += card;
+                });
+            } catch (e) {
+                document.getElementById('jobList').innerHTML = "<p class='text-center text-red-500'>❌ ไม่สามารถเชื่อมต่อข้อมูลได้</p>";
+            }
+        }
+
+        async function closeJob(jobId) {
+            const { value: formValues } = await Swal.fire({
+                title: 'ยืนยันการปิดงาน',
+                html:
+                    '<input id="staffName" class="swal2-input" placeholder="ชื่อช่างผู้ซ่อม">' +
+                    '<p class="text-xs text-gray-400 mt-3 text-left px-8">ถ่ายรูปหลังซ่อมเสร็จ:</p>' +
+                    '<input type="file" id="imgAfter" accept="image/*" class="swal2-file">',
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกปิดงาน',
+                preConfirm: () => {
+                    return {
+                        staff: document.getElementById('staffName').value,
+                        file: document.getElementById('imgAfter').files[0]
+                    }
+                }
+            });
+
+            if (formValues) {
+                if (!formValues.staff || !formValues.file) {
+                    Swal.fire('ข้อมูลไม่ครบ', 'กรุณาใส่ชื่อช่างและถ่ายรูปหลังซ่อมครับ', 'warning');
+                    return;
+                }
+
+                Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                try {
+                    // 1. อัปโหลดรูปหลังซ่อมไป ImgBB
+                    let reader = new FileReader();
+                    reader.readAsDataURL(formValues.file);
+                    reader.onload = async () => {
+                        let base64 = reader.result.split(',')[1];
+                        let formData = new FormData();
+                        formData.append("image", base64);
+                        
+                        let imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                        let imgJson = await imgRes.json();
+                        let finalImg = imgJson.data.url;
+
+                        // 2. ส่งข้อมูลไป Google Script เพื่ออัปเดตสถานะใน Sheet
+                        let payload = {
+                            action: "close_job",
+                            jobId: jobId,
+                            staff: formValues.staff,
+                            image: finalImg
+                        };
+
+                        await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                        
+                        Swal.fire('สำเร็จ!', 'ปิดงานเรียบร้อยแล้ว', 'success').then(() => loadJobs());
+                    };
+                } catch (e) {
+                    Swal.fire('ผิดพลาด', 'ไม่สามารถปิดงานได้', 'error');
+                }
+            }
+        }
+
+        loadJobs();
+    </script>
+</body>
+</html>
