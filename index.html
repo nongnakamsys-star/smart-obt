@@ -59,7 +59,7 @@
 
     <script>
         // --- ส่วนตั้งค่า ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypvdpyAIRB68kvhmtVL9p7iRs7gtC1jjB_4lDSpjaRbH_FHw4avAoOKr7GXcFWnR_SZw/exec"; 
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOtFnwBGger3xYTwMO-KPzswCMwLLq9unBU6vVwXdH-kUE4iQXQ4vjRg4KFobXFaa-ZA/exec"; 
         const LIFF_ID = "2008912061-0y709pTb";
         // ----------------
 
@@ -150,18 +150,22 @@
 
             fetch(WEB_APP_URL, {
                 method: 'POST',
-                mode: 'no-cors', // เพิ่มเพื่อป้องกันปัญหา CORS บางกรณี
-                body: JSON.stringify(payload)
-            }).then(() => {
-                Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => {
-                    liff.closeWindow();
-                });
+                // 🚩 ห้ามใส่ no-cors นะครับ
+                body: JSON.stringify(payload) 
+            }).then(res => {
+                // ตรวจสอบว่าส่งสำเร็จไหม
+                if(res.ok) {
+                    Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => {
+                        liff.closeWindow();
+                    });
+                }
             }).catch(err => {
-                Swal.fire('ผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่', 'error');
+                Swal.fire('ผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ', 'error');
             });
         }
     </script>
 </body>
 </html>
+
 
 
