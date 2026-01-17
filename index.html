@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แจ้งเหตุ อบต. V3.0</title>
+    <title>Smart อบต. V3.0 (ImgBB Mode)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -16,7 +16,7 @@
 
     <div class="bg-blue-600 p-5 text-white text-center rounded-b-3xl shadow-md">
         <h1 class="text-2xl font-bold">📢 แจ้งเหตุร้องทุกข์</h1>
-        <p class="text-sm opacity-80">องค์การบริหารส่วนตำบล (Smart OBT)</p>
+        <p class="text-sm opacity-80">ระบบรับแจ้งเหตุผ่าน ImgBB</p>
     </div>
 
     <div class="p-6 space-y-4">
@@ -27,14 +27,14 @@
                 </div>
                 <div id="uploadPlaceholder" class="text-gray-400 text-center">
                     <p class="text-4xl">📸</p>
-                    <p class="mt-1 text-sm">แตะเพื่อถ่ายรูป</p>
+                    <p class="mt-1 text-sm">ถ่ายรูปภาพประกอบ</p>
                 </div>
                 <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
             </label>
         </div>
 
         <button type="button" onclick="getLocation()" class="w-full bg-orange-500 text-white py-2 rounded-lg shadow font-bold">📍 ระบุตำแหน่งพิกัด</button>
-        <p id="locationStatus" class="text-xs text-center text-gray-500">ยังไม่ได้ระบุพิกัด</p>
+        <p id="locationStatus" class="text-xs text-center text-gray-500 italic">ยังไม่ได้ระบุพิกัด</p>
 
         <div class="grid grid-cols-2 gap-3">
             <input type="text" id="name" placeholder="ชื่อผู้แจ้ง" class="p-3 border rounded-lg bg-gray-50">
@@ -46,22 +46,22 @@
             <option value="ไฟฟ้าสาธารณะดับ">💡 ไฟฟ้าสาธารณะดับ</option>
             <option value="ท่อประปาแตก/รั่ว">💧 ท่อประปาแตก/รั่ว</option>
             <option value="ถนนชำรุด/เป็นหลุม">🛣️ ถนนชำรุด/เป็นหลุม</option>
-            <option value="ขยะตกค้าง">🗑️ ขยะตกค้าง</option>
             <option value="อื่นๆ">📣 อื่นๆ</option>
         </select>
 
         <textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
 
-        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 disabled:bg-gray-400">
+        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700">
             ส่งเรื่องแจ้งเหตุ 🚀
         </button>
     </div>
 
     <script>
-        // --- ส่วนตั้งค่า ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOtFnwBGger3xYTwMO-KPzswCMwLLq9unBU6vVwXdH-kUE4iQXQ4vjRg4KFobXFaa-ZA/exec"; 
-        const LIFF_ID = "2008912061-0y709pTb";
-        // ----------------
+        // --- ⚙️ ส่วนตั้งค่า (แก้ไข 3 จุดนี้) ---
+        const WEB_APP_URL = "วาง_URL_จาก_Apps_Script_ที่นี่"; 
+        const LIFF_ID = "วาง_LIFF_ID_ที่นี่";
+        const IMGBB_API_KEY = "วาง_API_KEY_ของ_ImgBB_ที่นี่";
+        // ----------------------------------
 
         let base64Image = "";
         let lat = "", lng = "";
@@ -79,34 +79,12 @@
         function processImage() {
             const file = document.getElementById('fileInput').files[0];
             if (!file) return;
-
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerText = "⏳ กำลังโหลดรูป...";
-
             const reader = new FileReader();
             reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const maxWidth = 800;
-                    const scaleSize = maxWidth / img.width;
-                    canvas.width = maxWidth;
-                    canvas.height = img.height * scaleSize;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    // บันทึกรูปใส่ตัวแปร
-                    base64Image = canvas.toDataURL('image/jpeg', 0.8);
-                    
-                    document.getElementById('previewImage').src = base64Image;
-                    document.getElementById('previewContainer').classList.remove('hidden');
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                    
-                    btn.disabled = false;
-                    btn.innerText = "ส่งเรื่องแจ้งเหตุ 🚀";
-                };
-                img.src = e.target.result;
+                base64Image = e.target.result.split(',')[1]; // เอาแค่ข้อมูล base64 (ไม่เอา header)
+                document.getElementById('previewImage').src = e.target.result;
+                document.getElementById('previewContainer').classList.remove('hidden');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }
@@ -120,52 +98,53 @@
             }
         }
 
-        function submitForm() {
-            alert("ขนาดรูปภาพที่กำลังจะส่งคือ: " + base64Image.length);
+        async function submitForm() {
             const type = document.getElementById('type').value;
-            const detail = document.getElementById('detail').value;
-
-            if (!base64Image) {
-                Swal.fire('ขออภัย', 'กรุณาถ่ายรูปภาพประกอบด้วยครับ', 'warning');
-                return;
-            }
-            if (!lat) {
-                Swal.fire('ขออภัย', 'กรุณากดระบุตำแหน่งก่อนครับ', 'warning');
+            if (!base64Image || !lat || !type) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูป ระบุพิกัด และเลือกประเภทเหตุครับ', 'warning');
                 return;
             }
 
-            Swal.fire({ title: 'กำลังส่งข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-            alert("ขนาดข้อมูลรูปภาพ: " + base64Image.length + " ตัวอักษร");
-            const payload = {
-                action: "new_report",
-                user: liff.getContext()?.userId || "Unknown",
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                type: type,
-                detail: detail,
-                lat: lat,
-                lng: lng,
-                image: base64Image
-            };
+            Swal.fire({ title: 'กำลังอัปโหลดรูปภาพ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                // 🚩 ห้ามใส่ no-cors นะครับ
-                body: JSON.stringify(payload) 
-            }).then(res => {
-                // ตรวจสอบว่าส่งสำเร็จไหม
-                if(res.ok) {
-                    Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => {
-                        liff.closeWindow();
-                    });
-                }
-            }).catch(err => {
-                Swal.fire('ผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ', 'error');
-            });
+            try {
+                // 1. ส่งรูปไป ImgBB
+                const formData = new FormData();
+                formData.append("image", base64Image);
+                const imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: "POST",
+                    body: formData
+                });
+                const imgData = await imgRes.json();
+                const finalImageUrl = imgData.data.url;
+
+                // 2. ส่งข้อมูลทั้งหมดไป Google Script
+                Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+                const payload = {
+                    action: "new_report",
+                    user: liff.getContext()?.userId || "Unknown",
+                    name: document.getElementById('name').value,
+                    phone: document.getElementById('phone').value,
+                    type: type,
+                    detail: document.getElementById('detail').value,
+                    lat: lat,
+                    lng: lng,
+                    image: finalImageUrl // ลิงก์จาก ImgBB
+                };
+
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+
+                Swal.fire('สำเร็จ!', 'ส่งแจ้งเหตุเรียบร้อยแล้ว', 'success').then(() => liff.closeWindow());
+
+            } catch (error) {
+                Swal.fire('ผิดพลาด', 'เกิดปัญหาในการส่งข้อมูล: ' + error, 'error');
+            }
         }
     </script>
 </body>
 </html>
-
-
-
