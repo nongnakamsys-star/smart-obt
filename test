@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart อบต.หนองนาคำ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body class="max-w-md mx-auto bg-gray-100 min-h-screen">
+    <div class="bg-blue-600 p-6 text-white text-center rounded-b-3xl shadow-lg">
+        <h1 class="text-2xl font-bold">📢 แจ้งเรื่อง</h1>
+        <p class="text-sm opacity-80">องค์การบริหารส่วนตำบลหนองนาคำ</p>
+    </div>
+
+    <div class="p-6 space-y-4">
+        <div class="text-center">
+            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col justify-center items-center cursor-pointer bg-white relative overflow-hidden">
+                <div id="previewContainer" class="absolute inset-0 hidden"><img id="previewImage" class="object-cover w-full h-full"></div>
+                <div id="uploadPlaceholder" class="text-gray-400">
+                    <p class="text-4xl">📸</p><p class="text-sm">ส่งรูปสถานที่(ต้องถ่ายรูปเก็บไว้ก่อน)</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
+            </label>
+        </div>
+
+        <button onclick="getLocation()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow">📍กดปุมส่งแหน่งพิกัด</button>
+        <p id="locationStatus" class="text-xs text-center text-gray-500 italic">ยังไม่ได้ระบุพิกัด</p>
+
+        <div class="space-y-3">
+            <input type="text" id="name" placeholder="ระบุชื่อ-นามสกุล ผู้แจ้ง" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg">
+            
+            <select id="type" class="w-full p-3 border rounded-lg bg-white">
+                <option value="" disabled selected>⏳ กำลังโหลดประเภทเหตุ...</option>
+            </select>
+            
+            <textarea id="detail" rows="3" placeholder="รายละเอียด..." class="w-full p-3 border rounded-lg"></textarea>
+        </div>
+
+        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">🚀 ส่งเรื่องแจ้งเหตุ</button>
+    </div>
+
+    <script>
+        // --- ⚙️ ตั้งค่า (ใช้ค่าเดิมของคุณ) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqeAYfMnR5L71zChnTH9fuhYL_GQZM8AfXCuSe0opauOgeZ9-1bUBlnT6OE21HD5DH8g/exec"; 
+        const LIFF_ID = "2008912061-0y709pTb";
+        const IMGBB_API_KEY = "2a80595118a7dc36b3ebda7a006fef3b";
+        // -------------------------
+
+        let base64Image = "";
+        let lat = "", lng = "";
+        let lineUserId = ""; // เพิ่มตัวแปรเก็บ User ID
+
+        async function initLIFF() {
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { liff.login(); }
+            else {
+                const profile = await liff.getProfile();
+                lineUserId = profile.userId; // 🚩 เก็บ LINE User ID ไว้ส่งเข้า Google Sheet
+                // 🚩 ลบบรรทัดที่ดึง displayName ออกเพื่อให้ช่องชื่อว่าง
+                loadCategories();
+            }
+        }
+        initLIFF();
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(WEB_APP_URL + "?action=getCategories");
+                const categories = await response.json();
+                const select = document.getElementById('type');
+                
+                select.innerHTML = '<option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>';
+                
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Load failed:", error);
+                document.getElementById('type').innerHTML = '<option value="" disabled selected>❌ โหลดไม่สำเร็จ</option>';
+            }
+        }
+
+        function processImage() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                base64Image = e.target.result.split(',')[1];
+                document.getElementById('previewImage').src = e.target.result;
+                document.getElementById('previewContainer').classList.remove('hidden');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function getLocation() {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                lat = pos.coords.latitude; lng = pos.coords.longitude;
+                document.getElementById('locationStatus').innerText = "✅ บันทึกพิกัดเรียบร้อย";
+            });
+        }
+
+        async function submitForm() {
+            const name = document.getElementById('name').value; // ดึงชื่อที่กรอกเอง
+            const type = document.getElementById('type').value;
+
+            // 🚩 ตรวจสอบว่ากรอกชื่อหรือไม่
+            if (!name || !base64Image || !lat || !type) { 
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกชื่อ ถ่ายรูป ระบุพิกัด และเลือกประเภทเหตุครับ', 'warning'); 
+                return; 
+            }
+            
+            Swal.fire({ title: 'กำลังอัปโหลดรูป...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+            try {
+                let formData = new FormData();
+                formData.append("image", base64Image);
+                let imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+                let imgJson = await imgRes.json();
+                let finalImg = imgJson.data.url;
+
+                Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+                let payload = {
+                    action: "new_report",
+                    user: lineUserId, // 🚩 ส่ง LINE User ID อัตโนมัติ
+                    name: name,       // 🚩 ส่งชื่อที่ประชาชนกรอกเอง
+                    phone: document.getElementById('phone').value,
+                    type: type,
+                    detail: document.getElementById('detail').value,
+                    lat: lat, lng: lng, image: finalImg
+                };
+
+                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                Swal.fire('สำเร็จ!', 'รับเรื่องเรียบร้อยแล้ว', 'success').then(() => liff.closeWindow());
+            } catch (e) { Swal.fire('ล้มเหลว', 'กรุณาลองใหม่', 'error'); }
+        }
+    </script>
+</body>
+</html>
