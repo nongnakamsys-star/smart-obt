@@ -1,159 +1,362 @@
 <!DOCTYPE html>
+
 <html lang="th">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรายงานผลส่งงาน - Smart อบต.หนองนาคำ</title>
+
+    <title>ระบบอัปเดตงาน - Smart อบต.</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+
         body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; }
-        .pending-border { border-left: 6px solid #ef4444; }
+
+        .status-wait { border-left: 6px solid #F1C40F; } /* สีเหลือง (งานรอ) */
+
+        .status-new { border-left: 6px solid #ef4444; }  /* สีแดง (งานใหม่) */
+
     </style>
+
 </head>
+
 <body class="max-w-md mx-auto pb-10">
 
+
+
     <div class="bg-gray-800 p-6 text-white text-center shadow-lg">
-        <h1 class="text-xl font-bold">🛠️ รายการงานส่งงาน</h1>
-        <p class="text-xs opacity-60">สำหรับเจ้าหน้าที่กองช่าง อบต.</p>
+
+        <h1 class="text-xl font-bold">🛠️ รายการงานคงค้าง</h1>
+
+        <p class="text-xs opacity-60">ระบบปฏิบัติงานเจ้าหน้าที่กองช่าง</p>
+
     </div>
+
+
 
     <div id="jobList" class="p-4 space-y-4">
-        <p class="text-center text-gray-500 mt-10">⏳ กำลังโหลดข้อมูลงาน...</p>
+
+        <p class="text-center text-gray-500 mt-10">⏳ กำลังโหลดข้อมูล...</p>
+
     </div>
 
+
+
     <script>
-        // --- ⚙️ ตั้งค่า (⚠️ อย่าลืมอัปเดต URL ล่าสุดนะครับ) ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzIdilhESvKPounPWBHhUpSV-cDvXALUAwAql9Zq3J--lxv-_llL7Fl4SfzD0-U0P10/exec"; 
+
+        // ⚠️ สำคัญ: ตรวจสอบ URL นี้ว่าเป็นอันล่าสุดที่คุณเพิ่ง Deploy หรือไม่
+
+        // ถ้าคุณกด "New Deployment" คุณจะได้ URL ใหม่ ต้องเอามาแก้ตรงนี้นะครับ
+
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8AwV5FCGpDTt2aPRqhwD5f_7Ec69UhGnPP2oG4ieIuTFS31pPrRHLZpkmBbKYfVnWow/exec"; 
+
         const IMGBB_API_KEY = "2a80595118a7dc36b3ebda7a006fef3b";
+
         // ---------------------------------------------
 
+
+
         async function loadJobs() {
+
             try {
+
                 const response = await fetch(WEB_APP_URL);
+
                 const data = await response.json();
+
                 const jobList = document.getElementById('jobList');
+
                 jobList.innerHTML = "";
 
-                // แสดงเฉพาะงานที่สถานะ "รอดำเนินการ"
-                const pendingJobs = data.filter(job => job.status === "รอดำเนินการ");
+
+
+                // 🚩 กรองงาน: แสดงงานที่ "ยังไม่เสร็จ" และ "ไม่อยู่นอกเขต"
+
+                // เพื่อให้งานที่ "รอวัสดุ" ยังคงแสดงอยู่ให้เรากดอัปเดตได้
+
+                const pendingJobs = data.filter(job => 
+
+                    job.status !== "เสร็จสิ้น" && job.status !== "อยู่นอกเขตรับผิดชอบ"
+
+                );
+
+
 
                 if (pendingJobs.length === 0) {
-                    jobList.innerHTML = '<div class="text-center p-10 text-gray-400">✅ ไม่มีงานค้างในขณะนี้</div>';
+
+                    jobList.innerHTML = '<div class="text-center p-10 text-gray-400">✅ ไม่พบงานค้างในระบบ</div>';
+
                     return;
+
                 }
+
+
 
                 pendingJobs.forEach(job => {
+
+                    // แยกสีขอบและป้ายกำกับ
+
+                    let isNew = (job.status === "รอดำเนินการ");
+
+                    let borderClass = isNew ? "status-new" : "status-wait";
+
+                    let statusBadge = isNew 
+
+                        ? `<span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold">🔥 งานใหม่</span>`
+
+                        : `<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded font-bold">⏳ ${job.status}</span>`;
+
+
+
                     const card = `
-                        <div class="bg-white rounded-xl shadow-md p-4 pending-border">
+
+                        <div class="bg-white rounded-xl shadow-md p-4 ${borderClass}">
+
                             <div class="flex justify-between items-start mb-2">
-                                <span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold">${job.type}</span>
+
+                                <span class="text-gray-700 font-bold text-sm">${job.type}</span>
+
                                 <span class="text-gray-400 text-[10px]">${new Date(job.timestamp).toLocaleString('th-TH')}</span>
+
                             </div>
+
+                            <div class="mb-2">${statusBadge}</div>
+
                             <img src="${job.image}" class="w-full h-40 object-cover rounded-lg mb-3">
-                            <h3 class="font-bold text-gray-800">${job.detail}</h3>
+
+                            <h3 class="font-bold text-gray-800 text-sm">${job.detail}</h3>
+
                             <p class="text-xs text-gray-500 mt-1">ผู้แจ้ง: ${job.name}</p>
+
                             
+
                             <div class="mt-4 flex gap-2">
-                                <a href="https://www.google.com/maps/search/?api=1&query=${job.lat},${job.lng}" target="_blank" class="flex-1 bg-blue-100 text-blue-700 text-center py-2 rounded-lg text-sm font-bold flex items-center justify-center">📍 แผนที่</a>
-                                <button onclick="closeJob('${job.jobId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-700 transition">✅ ปิดงาน</button>
+
+                                <a href="https://www.google.com/maps?q=${job.lat},${job.lng}" target="_blank" class="flex-1 bg-blue-100 text-blue-700 text-center py-2 rounded-lg text-sm font-bold flex items-center justify-center">📍 แผนที่</a>
+
+                                <button onclick="updateJob('${job.jobId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-700 transition">📝 อัปเดตงาน</button>
+
                             </div>
+
                         </div>
+
                     `;
+
                     jobList.innerHTML += card;
+
                 });
+
             } catch (e) {
+
                 document.getElementById('jobList').innerHTML = "<p class='text-center text-red-500'>❌ ไม่สามารถเชื่อมต่อข้อมูลได้</p>";
+
             }
+
         }
 
-        async function closeJob(jobId) {
-            // 1. ดึงรายชื่อช่าง (User) มาใส่ Dropdown
+
+
+        async function updateJob(jobId) {
+
+            // 1. ดึงรายชื่อช่าง (User)
+
             let userOptions = '<option value="" disabled selected>เลือกชื่อเจ้าหน้าที่...</option>';
+
             try {
+
                 const res = await fetch(WEB_APP_URL + "?action=getUsers");
+
                 const users = await res.json();
-                users.forEach(u => {
-                    userOptions += `<option value="${u}">${u}</option>`;
-                });
-            } catch (e) {
-                userOptions = '<option value="">โหลดรายชื่อไม่สำเร็จ (กรุณาลองใหม่)</option>';
+
+                users.forEach(u => userOptions += `<option value="${u}">${u}</option>`);
+
+            } catch (e) { userOptions = '<option value="">โหลดรายชื่อไม่สำเร็จ</option>'; }
+
+
+
+            // 2. ดึงสถานะ (Status) จาก Google Sheet
+
+            let statusOptions = '';
+
+            try {
+
+                const res = await fetch(WEB_APP_URL + "?action=getStatuses");
+
+                const statuses = await res.json();
+
+                if(statuses.length > 0){
+
+                    statuses.forEach(s => statusOptions += `<option value="${s.name}">${s.name}</option>`);
+
+                } else {
+
+                    // กรณีโหลดไม่ได้ หรือใน Sheet ว่างเปล่า ให้ใช้ค่า Default
+
+                    statusOptions = `<option value="เสร็จสิ้น">เสร็จสิ้น</option><option value="รอวัสดุ/อะไหล่">รอวัสดุ/อะไหล่</option><option value="อยู่นอกเขตรับผิดชอบ">อยู่นอกเขตรับผิดชอบ</option>`;
+
+                }
+
+            } catch (e) { 
+
+                statusOptions = `<option value="เสร็จสิ้น">เสร็จสิ้น</option>`; 
+
             }
 
-            // 2. แสดง Popup ให้เลือกชื่อ + ใส่รหัสผ่าน + ถ่ายรูป
+
+
+            // 3. แสดง Popup
+
             const { value: formValues } = await Swal.fire({
-                title: 'ยืนยันการปิดงาน',
+
+                title: 'อัปเดตสถานะงาน',
+
                 html:
+
+                    '<div class="text-left text-sm text-gray-600 mb-1">สถานะการดำเนินงาน:</div>' +
+
+                    `<select id="jobStatus" class="swal2-input mb-3" style="width: 80%;">${statusOptions}</select>` + 
+
+                    
+
                     '<div class="text-left text-sm text-gray-600 mb-1">ชื่อผู้ปฏิบัติงาน:</div>' +
+
                     `<select id="staffName" class="swal2-input mb-3" style="width: 80%;">${userOptions}</select>` +
+
                     
+
                     '<div class="text-left text-sm text-gray-600 mb-1">รหัสผ่านยืนยัน:</div>' +
+
                     '<input type="password" id="staffPass" class="swal2-input" placeholder="กรอกรหัสผ่าน" style="width: 80%;">' +
+
                     
-                    '<div class="text-left text-sm text-gray-600 mt-4 mb-1">หลักฐานหลังซ่อม:</div>' +
+
+                    '<div class="text-left text-sm text-gray-600 mt-4 mb-1">หลักฐานการทำงาน:</div>' +
+
                     '<input type="file" id="imgAfter" accept="image/*" class="swal2-file" style="width: 80%;">',
+
                 showCancelButton: true,
-                confirmButtonText: 'บันทึกปิดงาน',
+
+                confirmButtonText: 'บันทึกข้อมูล',
+
                 confirmButtonColor: '#28a745',
-                cancelButtonText: 'ยกเลิก',
+
                 preConfirm: () => {
+
                     const st = document.getElementById('staffName').value;
+
                     const pw = document.getElementById('staffPass').value;
+
                     const fi = document.getElementById('imgAfter').files[0];
+
+                    const js = document.getElementById('jobStatus').value;
+
                     
+
                     if (!st) { Swal.showValidationMessage('กรุณาเลือกชื่อเจ้าหน้าที่'); return false; }
+
                     if (!pw) { Swal.showValidationMessage('กรุณากรอกรหัสผ่าน'); return false; }
-                    if (!fi) { Swal.showValidationMessage('กรุณาถ่ายรูปหลังซ่อม'); return false; }
+
+                    if (!fi) { Swal.showValidationMessage('กรุณาถ่ายรูปการทำงาน'); return false; }
+
                     
-                    return { staff: st, pass: pw, file: fi };
+
+                    return { staff: st, pass: pw, file: fi, status: js };
+
                 }
+
             });
 
+
+
             if (formValues) {
-                Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+
 
                 try {
-                    // 3. อัปโหลดรูปไป ImgBB
+
+                    // อัปโหลดรูป
+
                     let reader = new FileReader();
+
                     reader.readAsDataURL(formValues.file);
+
                     reader.onload = async () => {
+
                         let base64 = reader.result.split(',')[1];
+
                         let formData = new FormData();
+
                         formData.append("image", base64);
+
                         
+
                         let imgRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: "POST", body: formData });
+
                         let imgJson = await imgRes.json();
+
                         let finalImg = imgJson.data.url;
 
-                        // 4. ส่งข้อมูลไป Google Script (พร้อมรหัสผ่าน)
+
+
+                        // ส่งข้อมูลเข้า Apps Script (Action: update_job)
+
                         let payload = {
-                            action: "close_job",
+
+                            action: "update_job",
+
                             jobId: jobId,
+
                             staff: formValues.staff,
-                            password: formValues.pass, // 🚩 ส่งรหัสผ่านไปตรวจ
-                            image: finalImg
+
+                            password: formValues.pass,
+
+                            image: finalImg,
+
+                            status: formValues.status // ส่งสถานะไปด้วย
+
                         };
 
-                        // ส่งข้อมูล
+
+
                         await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+
                         
-                        // รอสักนิดแล้วรีโหลด (เพราะ no-cors ไม่ส่งค่ากลับมาว่ารหัสผิดหรือไม่)
-                        // แต่ถ้าใน Apps Script รหัสผิด ข้อมูลจะไม่ถูกบันทึก
+
                         setTimeout(() => {
-                            Swal.fire('ส่งข้อมูลเรียบร้อย', 'หากรหัสผ่านถูกต้อง รายการจะถูกปิดงาน', 'success')
-                            .then(() => loadJobs());
+
+                            Swal.fire('เรียบร้อย', 'อัปเดตสถานะงานแล้ว', 'success').then(() => loadJobs());
+
                         }, 2500);
+
                     };
+
                 } catch (e) {
+
                     Swal.fire('ผิดพลาด', 'เกิดปัญหาการเชื่อมต่อ', 'error');
+
                 }
+
             }
+
         }
 
-        loadJobs();
-    </script>
-</body>
-</html>
 
+
+        loadJobs();
+
+    </script>
+
+</body>
+
+</html>
 
