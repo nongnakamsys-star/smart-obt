@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ติดตามสถานะ - Smart อบต.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen pb-10">
+
+    <div class="bg-blue-600 p-6 text-white text-center shadow-lg rounded-b-3xl mb-6">
+        <h1 class="text-xl font-bold">📋 ติดตามเรื่องร้องเรียน</h1>
+        <p class="text-sm opacity-80" id="profileName">กำลังโหลดข้อมูล...</p>
+    </div>
+
+    <div id="historyList" class="px-4 space-y-4">
+        <div class="text-center mt-10">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="text-gray-500 mt-2 text-sm">กำลังค้นหาประวัติของคุณ...</p>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------------
+        // ⚠️ แก้ไข 2 บรรทัดนี้ก่อนใช้งานนะครับ
+        // ---------------------------------------------------------------
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx9lVSXJSI-ATx-Khc1AIRRw07bY_PUjdZL6hwNo81jYf0_zBcvKJyyeBrdvmvvxMBsFw/exec"; // 👈 ใส่ URL ล่าสุดจากการ Deploy
+        const LIFF_ID = "2008914907-JrrwTVWM"; // 👈 ต้องสร้าง LIFF ID ใหม่สำหรับหน้านี้โดยเฉพาะ ห้ามใช้ซ้ำกับหน้าแจ้งเหตุ
+        // ---------------------------------------------------------------
+
+        async function initLIFF() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    const profile = await liff.getProfile();
+                    document.getElementById('profileName').innerText = "ผู้ใช้งาน: " + profile.displayName;
+                    // ส่ง User ID ไปดึงข้อมูล
+                    loadHistory(profile.userId);
+                }
+            } catch (err) {
+                document.getElementById('historyList').innerHTML = `<div class="text-center text-red-500 p-10">❌ เกิดข้อผิดพลาดในการเชื่อมต่อ LINE (ตรวจสอบ LIFF ID)<br><span class="text-xs">${err}</span></div>`;
+            }
+        }
+
+        async function loadHistory(userId) {
+            try {
+                // เรียก Apps Script พร้อมส่ง action=getHistory และ user=...
+                const response = await fetch(`${WEB_APP_URL}?action=getHistory&user=${userId}`);
+                const data = await response.json();
+                
+                const list = document.getElementById('historyList');
+                list.innerHTML = ""; // เคลียร์หน้าจอ
+
+                if (data.length === 0) {
+                    list.innerHTML = `
+                        <div class="text-center text-gray-400 mt-10 flex flex-col items-center">
+                            <span class="text-5xl mb-2">📭</span>
+                            <p>ไม่พบประวัติการแจ้งเหตุ</p>
+                            <p class="text-xs">เรื่องที่คุณแจ้งจะปรากฏที่นี่ครับ</p>
+                        </div>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    // กำหนดสีตามสถานะ
+                    let statusBadge = item.status === "เสร็จสิ้น" 
+                        ? `<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">✅ ดำเนินการเสร็จสิ้น</span>`
+                        : `<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full font-bold">⏳ รอดำเนินการ</span>`;
+                    
+                    let imageShow = item.status === "เสร็จสิ้น" && item.imageAfter 
+                        ? item.imageAfter  // ถ้าเสร็จแล้วโชว์รูปหลังซ่อม
+                        : item.image;      // ถ้ายังไม่เสร็จโชว์รูปที่แจ้ง
+
+                    let card = `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
+                            <img src="${imageShow}" class="w-20 h-20 object-cover rounded-lg bg-gray-200 flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h3 class="font-bold text-gray-800 text-sm truncate">${item.type}</h3>
+                                    <span class="text-[10px] text-gray-400">${new Date(item.timestamp).toLocaleDateString('th-TH')}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 line-clamp-2 mb-2">${item.detail}</p>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    `;
+                    list.innerHTML += card;
+                });
+
+            } catch (e) {
+                document.getElementById('historyList').innerHTML = `<div class="text-center text-red-500 p-10">❌ โหลดข้อมูลไม่สำเร็จ<br>ตรวจสอบ URL Web App</div>`;
+            }
+        }
+
+        initLIFF();
+    </script>
+</body>
+</html>
