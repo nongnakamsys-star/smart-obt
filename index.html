@@ -33,7 +33,7 @@
                 <div id="previewContainer" class="absolute inset-0 hidden"><img id="previewImage" class="object-cover w-full h-full"></div>
                 <div id="uploadPlaceholder" class="text-gray-400">
                     <p class="text-4xl mb-2">📸</p>
-                    <p class="text-sm">แตะเพื่อถ่ายรูปหน้างาน</p>
+                    <p class="text-sm">แตะเพื่อส่งรูปหน้างานต้องถ่ายรูปไว้ก่อน</p>
                 </div>
                 <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
             </label>
@@ -43,7 +43,7 @@
             <div class="flex justify-between items-center mb-2">
                 <label class="block text-sm font-bold text-gray-700">📍 ระบุพิกัด</label>
                 <button onclick="findMyLocation()" class="bg-green-500 text-white text-xs px-3 py-2 rounded-lg shadow hover:bg-green-600 transition flex items-center gap-1">
-                    🎯กดตรงนี้เพื่อรีเซ็ทตำแหน่งปัจจุบัน
+                    🎯กดตรงนี้เพื่อจับตำแหน่งปัจจุบัน
                 </button>
             </div>
             
@@ -53,7 +53,7 @@
 
         <div class="space-y-3">
             <input type="text" id="name" placeholder="ระบุชื่อ-นามสกุล ผู้แจ้ง" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
-            <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg shadow-sm">
+            <input type="tel" id="phone" placeholder="เบอร์โทรเพื่อเจ้าหน้าที่ติดต่อกลับ" class="w-full p-3 border rounded-lg shadow-sm">
             
             <select id="type" class="w-full p-3 border rounded-lg bg-white shadow-sm">
                 <option value="" disabled selected>⏳ กำลังโหลดประเภทเหตุ...</option>
@@ -215,5 +215,6 @@
     </script>
 </body>
 </html>
+
 
 
