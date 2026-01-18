@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรายงานผลส่งงาน - Smart อบต.</title>
+    <title>ระบบรายงานผลส่งงาน - Smart อบต.หนองนาคำ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -24,8 +24,8 @@
     </div>
 
     <script>
-        // --- ⚙️ ตั้งค่า (แก้ไขให้เหมือนหน้า index.html) ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxqSZApn9jd3jfRRDF4QKEdkg2PSs8XdvLBtE7xN_D87QzrvO9DUqkEemXF97iwiH1naQ/exec"; 
+        // --- ⚙️ ตั้งค่า (⚠️ อย่าลืมอัปเดต URL ล่าสุดนะครับ) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxSlF6co1GJGVIKyQkekfCLMJded74OYsV8NIgK91kW7sgJ1jBO1eUws2xKes9YISl-jw/exec"; 
         const IMGBB_API_KEY = "2a80595118a7dc36b3ebda7a006fef3b";
         // ---------------------------------------------
 
@@ -56,8 +56,8 @@
                             <p class="text-xs text-gray-500 mt-1">ผู้แจ้ง: ${job.name}</p>
                             
                             <div class="mt-4 flex gap-2">
-                                <a href="https://www.google.com/maps?q=${job.lat},${job.lng}" target="_blank" class="flex-1 bg-blue-100 text-blue-700 text-center py-2 rounded-lg text-sm font-bold">📍 แผนที่</a>
-                                <button onclick="closeJob('${job.jobId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold shadow-md">✅ ปิดงาน</button>
+                                <a href="https://www.google.com/maps/search/?api=1&query=${job.lat},${job.lng}" target="_blank" class="flex-1 bg-blue-100 text-blue-700 text-center py-2 rounded-lg text-sm font-bold flex items-center justify-center">📍 แผนที่</a>
+                                <button onclick="closeJob('${job.jobId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-700 transition">✅ ปิดงาน</button>
                             </div>
                         </div>
                     `;
@@ -69,32 +69,52 @@
         }
 
         async function closeJob(jobId) {
+            // 1. ดึงรายชื่อช่าง (User) มาใส่ Dropdown
+            let userOptions = '<option value="" disabled selected>เลือกชื่อเจ้าหน้าที่...</option>';
+            try {
+                const res = await fetch(WEB_APP_URL + "?action=getUsers");
+                const users = await res.json();
+                users.forEach(u => {
+                    userOptions += `<option value="${u}">${u}</option>`;
+                });
+            } catch (e) {
+                userOptions = '<option value="">โหลดรายชื่อไม่สำเร็จ (กรุณาลองใหม่)</option>';
+            }
+
+            // 2. แสดง Popup ให้เลือกชื่อ + ใส่รหัสผ่าน + ถ่ายรูป
             const { value: formValues } = await Swal.fire({
                 title: 'ยืนยันการปิดงาน',
                 html:
-                    '<input id="staffName" class="swal2-input" placeholder="ชื่อช่างผู้ซ่อม">' +
-                    '<p class="text-xs text-gray-400 mt-3 text-left px-8">ถ่ายรูปหลังซ่อมเสร็จ:</p>' +
-                    '<input type="file" id="imgAfter" accept="image/*" class="swal2-file">',
+                    '<div class="text-left text-sm text-gray-600 mb-1">ชื่อผู้ปฏิบัติงาน:</div>' +
+                    `<select id="staffName" class="swal2-input mb-3" style="width: 80%;">${userOptions}</select>` +
+                    
+                    '<div class="text-left text-sm text-gray-600 mb-1">รหัสผ่านยืนยัน:</div>' +
+                    '<input type="password" id="staffPass" class="swal2-input" placeholder="กรอกรหัสผ่าน" style="width: 80%;">' +
+                    
+                    '<div class="text-left text-sm text-gray-600 mt-4 mb-1">หลักฐานหลังซ่อม:</div>' +
+                    '<input type="file" id="imgAfter" accept="image/*" class="swal2-file" style="width: 80%;">',
                 showCancelButton: true,
                 confirmButtonText: 'บันทึกปิดงาน',
+                confirmButtonColor: '#28a745',
+                cancelButtonText: 'ยกเลิก',
                 preConfirm: () => {
-                    return {
-                        staff: document.getElementById('staffName').value,
-                        file: document.getElementById('imgAfter').files[0]
-                    }
+                    const st = document.getElementById('staffName').value;
+                    const pw = document.getElementById('staffPass').value;
+                    const fi = document.getElementById('imgAfter').files[0];
+                    
+                    if (!st) { Swal.showValidationMessage('กรุณาเลือกชื่อเจ้าหน้าที่'); return false; }
+                    if (!pw) { Swal.showValidationMessage('กรุณากรอกรหัสผ่าน'); return false; }
+                    if (!fi) { Swal.showValidationMessage('กรุณาถ่ายรูปหลังซ่อม'); return false; }
+                    
+                    return { staff: st, pass: pw, file: fi };
                 }
             });
 
             if (formValues) {
-                if (!formValues.staff || !formValues.file) {
-                    Swal.fire('ข้อมูลไม่ครบ', 'กรุณาใส่ชื่อช่างและถ่ายรูปหลังซ่อมครับ', 'warning');
-                    return;
-                }
-
-                Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
                 try {
-                    // 1. อัปโหลดรูปหลังซ่อมไป ImgBB
+                    // 3. อัปโหลดรูปไป ImgBB
                     let reader = new FileReader();
                     reader.readAsDataURL(formValues.file);
                     reader.onload = async () => {
@@ -106,20 +126,27 @@
                         let imgJson = await imgRes.json();
                         let finalImg = imgJson.data.url;
 
-                        // 2. ส่งข้อมูลไป Google Script เพื่ออัปเดตสถานะใน Sheet
+                        // 4. ส่งข้อมูลไป Google Script (พร้อมรหัสผ่าน)
                         let payload = {
                             action: "close_job",
                             jobId: jobId,
                             staff: formValues.staff,
+                            password: formValues.pass, // 🚩 ส่งรหัสผ่านไปตรวจ
                             image: finalImg
                         };
 
+                        // ส่งข้อมูล
                         await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                         
-                        Swal.fire('สำเร็จ!', 'ปิดงานเรียบร้อยแล้ว', 'success').then(() => loadJobs());
+                        // รอสักนิดแล้วรีโหลด (เพราะ no-cors ไม่ส่งค่ากลับมาว่ารหัสผิดหรือไม่)
+                        // แต่ถ้าใน Apps Script รหัสผิด ข้อมูลจะไม่ถูกบันทึก
+                        setTimeout(() => {
+                            Swal.fire('ส่งข้อมูลเรียบร้อย', 'หากรหัสผ่านถูกต้อง รายการจะถูกปิดงาน', 'success')
+                            .then(() => loadJobs());
+                        }, 2500);
                     };
                 } catch (e) {
-                    Swal.fire('ผิดพลาด', 'ไม่สามารถปิดงานได้', 'error');
+                    Swal.fire('ผิดพลาด', 'เกิดปัญหาการเชื่อมต่อ', 'error');
                 }
             }
         }
@@ -128,5 +155,3 @@
     </script>
 </body>
 </html>
-
-
