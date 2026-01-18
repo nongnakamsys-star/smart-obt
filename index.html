@@ -7,40 +7,60 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* ปรับแต่งแผนที่ */
+        #map { 
+            height: 300px; 
+            width: 100%; 
+            border-radius: 12px; 
+            z-index: 0; /* ป้องกันบัง Popup */
+        }
+    </style>
 </head>
-<body class="max-w-md mx-auto bg-gray-100 min-h-screen">
+<body class="max-w-md mx-auto bg-gray-100 min-h-screen pb-10">
+    
     <div class="bg-blue-600 p-6 text-white text-center rounded-b-3xl shadow-lg">
-        <h1 class="text-2xl font-bold">📢 แจ้งเรื่อง</h1>
+        <h1 class="text-2xl font-bold">📢 แจ้งเรื่องร้องเรียน</h1>
         <p class="text-sm opacity-80">องค์การบริหารส่วนตำบลหนองนาคำ</p>
     </div>
 
     <div class="p-6 space-y-4">
+        
         <div class="text-center">
-            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col justify-center items-center cursor-pointer bg-white relative overflow-hidden">
+            <label for="fileInput" class="block w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col justify-center items-center cursor-pointer bg-white relative overflow-hidden hover:bg-gray-50 transition">
                 <div id="previewContainer" class="absolute inset-0 hidden"><img id="previewImage" class="object-cover w-full h-full"></div>
                 <div id="uploadPlaceholder" class="text-gray-400">
-                    <p class="text-4xl">📸</p><p class="text-sm">ส่งรูปสถานที่(ต้องถ่ายรูปเก็บไว้ก่อน)</p>
+                    <p class="text-4xl mb-2">📸</p>
+                    <p class="text-sm">แตะเพื่อถ่ายรูปหน้างาน</p>
                 </div>
                 <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="processImage()">
             </label>
         </div>
 
-        <button onclick="getLocation()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow">📍กดปุมส่งตำแหน่งพิกัด</button>
-        <p id="locationStatus" class="text-xs text-center text-gray-500 italic">ยังไม่ได้ระบุพิกัด</p>
+        <div class="bg-white p-3 rounded-xl shadow-sm border">
+            <label class="block text-sm font-bold text-gray-700 mb-2">📍 ระบุพิกัด (เลื่อนหมุดได้)</label>
+            [Image of map marker icon]
+            <div id="map"></div>
+            <p class="text-xs text-red-500 mt-2 text-center">* กรุณาตรวจสอบหมุดให้ตรงกับจุดเกิดเหตุ</p>
+        </div>
 
         <div class="space-y-3">
-            <input type="text" id="name" placeholder="ระบุชื่อ-นามสกุล ผู้แจ้ง" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg">
+            <input type="text" id="name" placeholder="ระบุชื่อ-นามสกุล ผู้แจ้ง" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+            <input type="tel" id="phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 border rounded-lg shadow-sm">
             
-            <select id="type" class="w-full p-3 border rounded-lg bg-white">
+            <select id="type" class="w-full p-3 border rounded-lg bg-white shadow-sm">
                 <option value="" disabled selected>⏳ กำลังโหลดประเภทเหตุ...</option>
             </select>
             
-            <textarea id="detail" rows="3" placeholder="รายละเอียด..." class="w-full p-3 border rounded-lg"></textarea>
+            <textarea id="detail" rows="3" placeholder="รายละเอียดเพิ่มเติม..." class="w-full p-3 border rounded-lg shadow-sm"></textarea>
         </div>
 
-        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">🚀 ส่งเรื่องแจ้งเหตุ</button>
+        <button onclick="submitForm()" id="submitBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform hover:bg-blue-700">🚀 ส่งเรื่องแจ้งเหตุ</button>
     </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         // --- ⚙️ ตั้งค่า (ใช้ค่าเดิมของคุณ) ---
@@ -51,19 +71,61 @@
 
         let base64Image = "";
         let lat = "", lng = "";
-        let lineUserId = ""; // เพิ่มตัวแปรเก็บ User ID
+        let lineUserId = "";
+        let map, marker; // ตัวแปรสำหรับแผนที่
+
+        // เริ่มทำงานเมื่อโหลดหน้าเว็บ
+        window.onload = async function() {
+            await initLIFF();
+            initMap(); // โหลดแผนที่
+        };
 
         async function initLIFF() {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); }
             else {
                 const profile = await liff.getProfile();
-                lineUserId = profile.userId; // 🚩 เก็บ LINE User ID ไว้ส่งเข้า Google Sheet
-                // 🚩 ลบบรรทัดที่ดึง displayName ออกเพื่อให้ช่องชื่อว่าง
+                lineUserId = profile.userId;
+                // ปล่อยให้ displayName ว่างไว้ตามเดิม เพื่อให้คนกรอกเอง
                 loadCategories();
             }
         }
-        initLIFF();
+
+        // 🗺️ ฟังก์ชันสร้างแผนที่
+        function initMap() {
+            // 1. สร้างแผนที่ (ตั้งค่าเริ่มต้นที่ อบต.หนองนาคำ หรือพิกัดกลางๆ ไปก่อน)
+            map = L.map('map').setView([17.06, 102.55], 15); // พิกัดคร่าวๆ ของหนองนาคำ
+
+            // 2. ดึงภาพแผนที่จาก OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // 3. สร้างหมุดที่ "ลากได้" (Draggable)
+            marker = L.marker([17.06, 102.55], { draggable: true }).addTo(map);
+
+            // 4. เมื่อลากหมุดเสร็จ ให้บันทึกค่าพิกัดใหม่
+            marker.on('dragend', function(e) {
+                var coord = e.target.getLatLng();
+                lat = coord.lat;
+                lng = coord.lng;
+                console.log("New Location:", lat, lng);
+            });
+
+            // 5. ขอพิกัด GPS ปัจจุบันของผู้ใช้
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    lat = position.coords.latitude;
+                    lng = position.coords.longitude;
+                    
+                    // ย้ายแผนที่และหมุดไปจุดปัจจุบัน
+                    map.setView([lat, lng], 17);
+                    marker.setLatLng([lat, lng]);
+                }, function() {
+                    console.log("ไม่สามารถขอพิกัด GPS ได้ ใช้ค่าเริ่มต้น");
+                });
+            }
+        }
 
         async function loadCategories() {
             try {
@@ -72,7 +134,6 @@
                 const select = document.getElementById('type');
                 
                 select.innerHTML = '<option value="" disabled selected>🔻 เลือกประเภทเหตุ</option>';
-                
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
@@ -98,18 +159,11 @@
             reader.readAsDataURL(file);
         }
 
-        function getLocation() {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                lat = pos.coords.latitude; lng = pos.coords.longitude;
-                document.getElementById('locationStatus').innerText = "✅ บันทึกพิกัดเรียบร้อย";
-            });
-        }
-
         async function submitForm() {
-            const name = document.getElementById('name').value; // ดึงชื่อที่กรอกเอง
+            const name = document.getElementById('name').value;
             const type = document.getElementById('type').value;
 
-            // 🚩 ตรวจสอบว่ากรอกชื่อหรือไม่
+            // ตรวจสอบข้อมูล (เพิ่มการเช็ค lat/lng จากแผนที่)
             if (!name || !base64Image || !lat || !type) { 
                 Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกชื่อ ถ่ายรูป ระบุพิกัด และเลือกประเภทเหตุครับ', 'warning'); 
                 return; 
@@ -128,12 +182,14 @@
 
                 let payload = {
                     action: "new_report",
-                    user: lineUserId, // 🚩 ส่ง LINE User ID อัตโนมัติ
-                    name: name,       // 🚩 ส่งชื่อที่ประชาชนกรอกเอง
+                    user: lineUserId,
+                    name: name,
                     phone: document.getElementById('phone').value,
                     type: type,
                     detail: document.getElementById('detail').value,
-                    lat: lat, lng: lng, image: finalImg
+                    lat: lat, 
+                    lng: lng, // ส่งพิกัดจากแผนที่
+                    image: finalImg
                 };
 
                 await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
@@ -143,7 +199,3 @@
     </script>
 </body>
 </html>
-
-
-
-
