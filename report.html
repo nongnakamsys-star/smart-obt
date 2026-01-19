@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรายงานผู้บริหาร - Smart อบต.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
+        
+        /* ซ่อนเนื้อหาหลักจนกว่าจะล็อกอิน */
+        #mainContent { display: none; }
+        
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .bg-done { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .bg-wait { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .bg-new { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .bg-other { background-color: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition hover:scale-105 duration-300">
+            <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-3xl">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-1">เข้าสู่ระบบ</h2>
+            <p class="text-sm text-gray-500 mb-6">สำหรับเจ้าหน้าที่ธุรการ / ผู้บริหาร</p>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ชื่อเจ้าหน้าที่</label>
+                    <select id="loginUser" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
+                        <option value="" disabled selected>กำลังโหลดรายชื่อ...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">รหัสผ่าน</label>
+                    <input type="password" id="loginPass" placeholder="••••••••" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50">
+                </div>
+                <button onclick="doLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg transition flex justify-center items-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i> เข้าใช้งาน
+                </button>
+            </div>
+        </div>
+        <p class="text-slate-500 text-xs mt-8">Smart อบต. V3.0 © 2025</p>
+    </div>
+
+    <div id="mainContent" class="min-h-screen flex flex-col">
+        <nav class="bg-white shadow-sm border-b sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="bg-blue-600 text-white p-2 rounded-lg mr-3">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-800">ระบบรายงานแจ้งเหตุ</h1>
+                            <p class="text-xs text-gray-500">องค์การบริหารส่วนตำบลหนองนาคำ</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="hidden md:block text-right mr-2">
+                            <p class="text-sm font-bold text-gray-700" id="userDisplay">-</p>
+                            <p class="text-xs text-green-600">● ออนไลน์</p>
+                        </div>
+                        <a href="staff.html" target="_blank" class="text-gray-500 hover:text-blue-600 p-2 rounded-full transition" title="ไปหน้าช่าง">
+                            <i class="fas fa-tools text-lg"></i>
+                        </a>
+                        <button onclick="logout()" class="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-bold transition border border-red-100">
+                            <i class="fas fa-power-off mr-1"></i> ออกจากระบบ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            
+            <div class="bg-white p-4 rounded-xl shadow-sm border mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="relative w-full md:w-96">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="ค้นหาชื่อ, รหัส, หรือรายละเอียด..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="loadData()" class="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
+                    </button>
+                    <button onclick="exportTableToCSV()" class="text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 border border-green-100">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="p-4 border-b font-bold">รหัส / วันที่</th>
+                                <th class="p-4 border-b font-bold">ผู้แจ้ง</th>
+                                <th class="p-4 border-b font-bold">ประเภท / รายละเอียด</th>
+                                <th class="p-4 border-b font-bold text-center">สถานะ</th>
+                                <th class="p-4 border-b font-bold">ผู้รับผิดชอบ</th>
+                                <th class="p-4 border-b font-bold text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="text-sm divide-y divide-gray-100">
+                            <tr><td colspan="6" class="p-10 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-gray-50 text-xs text-gray-400 text-right border-t">
+                    แสดงข้อมูลทั้งหมด <span id="totalCount">0</span> รายการ
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ⚠️ สำคัญ: ใส่ URL Web App ของคุณที่นี่
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyR5AbSBwEoKOWDm6IENPWtNCwqOBB9BRbv46QJBWjJJhAQ_U3qNGiTZK04zdfw6jbuEg/exec"; 
+
+        // เริ่มทำงานเมื่อโหลดหน้าเว็บ
+        window.onload = function() {
+            loadUsers();
+            checkSession();
+        };
+
+        // --- 🔐 ระบบ Authentication ---
+        function checkSession() {
+            const user = localStorage.getItem('smartObtAdmin');
+            if (user) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'flex';
+                document.getElementById('userDisplay').innerText = user;
+                loadData(); // โหลดข้อมูลเมื่อ Login ผ่าน
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainContent').style.display = 'none';
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(WEB_APP_URL + "?action=getUsers");
+                const users = await res.json();
+                let opts = '<option value="" disabled selected>เลือกชื่อเจ้าหน้าที่...</option>';
+                users.forEach(u => opts += `<option value="${u}">${u}</option>`);
+                document.getElementById('loginUser').innerHTML = opts;
+            } catch (e) { console.error("User load error"); }
+        }
+
+        async function doLogin() {
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            if(!u || !p) { Swal.fire('แจ้งเตือน','กรุณากรอกข้อมูลให้ครบ','warning'); return; }
+
+            Swal.fire({title:'ตรวจสอบสิทธิ์...', didOpen:()=>Swal.showLoading()});
+            
+            try {
+                // ใช้ Action: checkLogin ที่เราเตรียมไว้ใน Code.gs
+                const res = await fetch(`${WEB_APP_URL}?action=checkLogin&staff=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
+                const json = await res.json();
+                
+                if(json.result === 'success') {
+                    localStorage.setItem('smartObtAdmin', u);
+                    Swal.close();
+                    checkSession();
+                } else {
+                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ','รหัสผ่านไม่ถูกต้อง','error');
+                }
+            } catch(e) { Swal.fire('Error','เชื่อมต่อระบบไม่ได้','error'); }
+        }
+
+        function logout() {
+            Swal.fire({
+                title: 'ออกจากระบบ?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ออกจากระบบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('smartObtAdmin');
+                    location.reload();
+                }
+            })
+        }
+
+        // --- 📊 ระบบโหลดข้อมูลตาราง ---
+        async function loadData() {
+            const tbody = document.getElementById('tableBody');
+            
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getAllJobs`);
+                const data = await response.json();
+                
+                tbody.innerHTML = "";
+                document.getElementById('totalCount').innerText = data.length;
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400">ยังไม่มีข้อมูลแจ้งซ่อม</td></tr>`;
+                    return;
+                }
+
+                data.forEach(job => {
+                    // กำหนดสีสถานะ
+                    let badgeClass = "bg-other";
+                    let icon = "fa-circle";
+                    if(job.status === "เสร็จสิ้น") { badgeClass = "bg-done"; icon = "fa-check-circle"; }
+                    else if(job.status === "รอดำเนินการ") { badgeClass = "bg-new"; icon = "fa-exclamation-circle"; }
+                    else if(job.status.includes("รอ") || job.status.includes("กำลัง")) { badgeClass = "bg-wait"; icon = "fa-clock"; }
+
+                    const tr = `
+                        <tr class="hover:bg-blue-50 transition border-b last:border-0">
+                            <td class="p-4 align-top">
+                                <span class="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">#${job.jobId}</span>
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <i class="far fa-calendar-alt"></i> ${new Date(job.timestamp).toLocaleDateString('th-TH')}
+                                </div>
+                            </td>
+                            <td class="p-4 align-top">
+                                <div class="font-bold text-gray-700">${job.user}</div>
+                                <div class="text-xs text-gray-400 mt-1">ผู้แจ้ง</div>
+                            </td>
+                            <td class="p-4 align-top">
+                                <div class="font-bold text-sm text-gray-800 mb-1">${job.type}</div>
+                                <div class="text-sm text-gray-600 bg-white border border-dashed rounded p-2">${job.detail}</div>
+                            </td>
+                            <td class="p-4 align-top text-center">
+                                <span class="status-badge ${badgeClass}">
+                                    <i class="fas ${icon} mr-1"></i>${job.status}
+                                </span>
+                            </td>
+                            <td class="p-4 align-top text-sm">
+                                ${job.staff ? `<span class="flex items-center gap-2"><i class="fas fa-user-hard-hat text-gray-400"></i> ${job.staff}</span>` : '<span class="text-gray-400">-</span>'}
+                            </td>
+                            <td class="p-4 align-top text-center">
+                                <button onclick="printPDF('${job.jobId}')" class="text-red-500 hover:text-white hover:bg-red-500 border border-red-200 px-3 py-1 rounded text-xs transition flex items-center justify-center mx-auto gap-1 shadow-sm">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += tr;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500">❌ เชื่อมต่อข้อมูลล้มเหลว</td></tr>`;
+            }
+        }
+
+        function printPDF(jobId) {
+            const url = `${WEB_APP_URL}?action=download_pdf&jobId=${jobId}`;
+            window.open(url, '_blank');
+        }
+
+        // --- 🔍 ระบบค้นหา ---
+        function filterTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const table = document.getElementById("tableBody");
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 0; i < tr.length; i++) {
+                const tdText = tr[i].innerText.toLowerCase();
+                if (tdText.includes(input)) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+
+        // (แถม) ฟังก์ชัน Export เป็น Excel ง่ายๆ
+        function exportTableToCSV() {
+            let csv = [];
+            let rows = document.querySelectorAll("table tr");
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length - 1; j++) { // ไม่เอาคอลัมน์ปุ่ม
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, " ");
+                    row.push(data);
+                }
+                csv.push(row.join(","));
+            }
+            let csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            let downloadLink = document.createElement("a");
+            downloadLink.download = "รายงานแจ้งซ่อม.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+        }
+    </script>
+</body>
+</html>
